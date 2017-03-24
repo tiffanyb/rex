@@ -1,6 +1,7 @@
 import rex
 import nose
 import struct
+import pickle
 import colorguard
 from rex.vulnerability import Vulnerability
 from rex.trace_additions import FormatInfoIntToStr, FormatInfoStrToInt, FormatInfoDontConstrain
@@ -20,6 +21,13 @@ def _do_pov_test(pov, enable_randomness=True):
             return True
     return False
 
+
+def _load_cache(bin_name):
+    path = os.path.join(tests_dir, "rop_cache", bin_name+".rop")
+    cache_tuple = pickle.load(open(path, "rb"))
+    return cache_tuple
+
+
 def test_legit_00001():
     '''
     Test exploitation of legit_00001 given a good crash.
@@ -27,7 +35,8 @@ def test_legit_00001():
 
     crash = '1002000041414141414141414141414d41414141414141414141414141414141001041414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141412a4141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141604141414141414141414102ffffff410080ffff4141410d807f412641414141414141414141414141414141414141413b41415f414141412b41414141417f4141414141412441414141416041f8414141414141c1414139410010000200005541415f4141b9b9b9b1b9d4b9b9b9b99cb99ec4b9b9b941411f4141414141414114414141514141414141414141414141454141494141414141414141404141414141414d414124a0414571717171717171717171717171717171616161616161616161616161616161006161515e41414141412041414141412125414141304141492f41414141492f4141414541412c4141410037373737373737373737414141414141413a41c4b9b9b9b901b9413c41414141414141414141414141412133414141414141412f414141414141414164414141414141414141414141417f41414100010000000055414b4100124141414141414141'.decode('hex')
 
-    crash = rex.Crash(os.path.join(bin_location, "tests/defcon24/legit_00001"), crash)
+    rop_cache = _load_cache("legit_00001")
+    crash = rex.Crash(os.path.join(bin_location, "tests/defcon24/legit_00001"), crash, rop_cache_tuple=rop_cache)
 
     arsenal = crash.exploit()
 
@@ -46,7 +55,8 @@ def test_legit_00003():
     '''
 
     crash = "1\n" + "A" * 200
-    crash = rex.Crash(os.path.join(bin_location, "tests/defcon24/legit_00003"), crash)
+    rop_cache = _load_cache("legit_00003")
+    crash = rex.Crash(os.path.join(bin_location, "tests/defcon24/legit_00003"), crash, rop_cache_tuple=rop_cache)
 
     nose.tools.assert_true(crash.explorable())
     nose.tools.assert_true(crash.one_of(Vulnerability.WRITE_WHAT_WHERE))
@@ -70,8 +80,9 @@ def test_controlled_printf():
     '''
 
     crash = "%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%X%x%sAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    rop_cache = _load_cache("controlled_printf")
     binary = os.path.join(bin_location, "tests/i386/controlled_printf")
-    crash = rex.Crash(binary, crash)
+    crash = rex.Crash(binary, crash, rop_cache_tuple=rop_cache)
 
     nose.tools.assert_true(crash.one_of(Vulnerability.ARBITRARY_READ))
 
@@ -93,7 +104,8 @@ def test_shellcode_placement():
     '''
 
     crash = "A" * 272
-    crash = rex.Crash(os.path.join(bin_location, "tests/i386/shellcode_tester"), crash)
+    rop_cache = _load_cache("shellcode_tester")
+    crash = rex.Crash(os.path.join(bin_location, "tests/i386/shellcode_tester"), crash, rop_cache_tuple=rop_cache)
 
     arsenal = crash.exploit()
 
@@ -117,7 +129,8 @@ def test_boolector_solving():
     '''
 
     crash = "A" * 64 * 4
-    crash = rex.Crash(os.path.join(bin_location, "tests/i386/add_payload"), crash)
+    rop_cache = _load_cache("add_payload")
+    crash = rex.Crash(os.path.join(bin_location, "tests/i386/add_payload"), crash, rop_cache_tuple=rop_cache)
 
     arsenal = crash.exploit()
 
@@ -136,7 +149,8 @@ def test_cpp_vptr_smash():
     '''
 
     crash = "A" * 512
-    crash = rex.Crash(os.path.join(bin_location, "tests/i386/vuln_vptr_smash"), crash)
+    rop_cache = _load_cache("vuln_vptr_smash")
+    crash = rex.Crash(os.path.join(bin_location, "tests/i386/vuln_vptr_smash"), crash, rop_cache_tuple=rop_cache)
 
     # this should just tell us that we have an arbitrary-read and that the crash type is explorable
     # but not exploitable
@@ -173,7 +187,8 @@ def test_linux_stacksmash():
     '''
 
     crash = "A" * 227
-    crash = rex.Crash(os.path.join(bin_location, "tests/i386/vuln_stacksmash"), crash)
+    rop_cache = _load_cache("vuln_stacksmash")
+    crash = rex.Crash(os.path.join(bin_location, "tests/i386/vuln_stacksmash"), crash, rop_cache_tuple=rop_cache)
     exploit = crash.exploit()
 
     # make sure we're able to exploit it in all possible ways
@@ -192,7 +207,9 @@ def test_cgc_type1_rop_stacksmash():
 
     crash = "0500ffff80ffffff80f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1ffff80f1f1f1ebf1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f100de7fff80ffffff800fffffff7ef3ffffffff7fffff80fffffeff09fefefefefe0a57656c63fe6d6520746f2850616c696e64726f6d65204669776465720a0affffffff80ffffe8800fffffff7f230a"
 
-    crash = rex.Crash(os.path.join(bin_location, "tests/cgc/sc1_0b32aa01_01"), crash.decode('hex'))
+    rop_cache = _load_cache("sc1_0b32aa01_01")
+    crash = rex.Crash(os.path.join(bin_location, "tests/cgc/sc1_0b32aa01_01"), crash.decode('hex'),
+                      rop_cache_tuple=rop_cache)
     arsenal = crash.exploit()
 
     # make sure we can control ecx, edx, ebx, ebp, esi, and edi with rop
@@ -215,7 +232,9 @@ def test_exploit_yielding():
 
     crash = "0500ffff80ffffff80f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1ffff80f1f1f1ebf1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f100de7fff80ffffff800fffffff7ef3ffffffff7fffff80fffffeff09fefefefefe0a57656c63fe6d6520746f2850616c696e64726f6d65204669776465720a0affffffff80ffffe8800fffffff7f230a"
 
-    crash = rex.Crash(os.path.join(bin_location, "tests/cgc/sc1_0b32aa01_01"), crash.decode('hex'))
+    rop_cache = _load_cache("sc1_0b32aa01_01")
+    crash = rex.Crash(os.path.join(bin_location, "tests/cgc/sc1_0b32aa01_01"), crash.decode('hex'),
+                      rop_cache_tuple=rop_cache)
 
     leakers = 0
     register_setters = 0
@@ -231,7 +250,8 @@ def test_exploit_yielding():
 def _do_arbitrary_transmit_test_for(binary):
     crash_input = "A"*0x24
     binary = os.path.join(bin_location, binary)
-    crash = rex.Crash(binary, crash_input)
+    rop_cache = _load_cache(os.path.basename(binary))
+    crash = rex.Crash(binary, crash_input, rop_cache_tuple=rop_cache)
     zp = crash.state.get_plugin("zen_plugin")
     nose.tools.assert_true(len(zp.controlled_transmits) == 1)
 
@@ -273,7 +293,8 @@ def test_KPRCA_00057():
     format_infos.append(FormatInfoDontConstrain(0x8049e90, "fdprintf", 1))
 
     binary = os.path.join(bin_location, "tests/cgc/KPRCA_00057")
-    crash = rex.Crash(binary, crash, format_infos=format_infos)
+    rop_cache = _load_cache("KPRCA_00057")
+    crash = rex.Crash(binary, crash, format_infos=format_infos, rop_cache_tuple=rop_cache)
 
     nose.tools.assert_true(crash.one_of(Vulnerability.ARBITRARY_TRANSMIT))
 
@@ -300,10 +321,10 @@ def test_reconstraining():
 
     crash_input = "101010101014431b371c3389313131301a73cc62516e491dd2f10bfa256e8c5577383b5dcf6bc645d295b4011493c0e5ed80ffffff0b7070c1ecc2f516a892f17abe0dd15eb17ff76624646f6f756d6590746174696f6eb770de07ed4352a3f8575ffc47e9aaa3c792f17abe0dd15eb17ff76624646f63756d877c26a90f839aa84386b0d86123f1ebb65586a794aef8355c3c252410bce1c41494adbe17ec7fd3f764b30fe3bb8187c7bd146462f5010000007f5713a610eda32f16a52226fb88fe0d2905ba2c98f48645786563757461626c652f6400631257e567ff227038ae0bb5242d61549eb9febc41cc0b347e7c7c7c7c7c7c7c7c7c7c7c7c7c7c997c7c7c73d6121b47383e2e72c363a4255a44bd17bec98097e8bd91cf27711ecf4edc02b6f031b170de07ed4352a310575ffc47e9aaa3c77ca565638510c0179e3911eb569ca90064cd2b48c977641ba395905373fd0b578175a210101014431b371c333700313130e7062cf5d2dd371b8cf2812fd823bd634f4240afba99bff3eee8494da1e7634bb4cf511771331b73cf16bb41aedd7c632d636763ede059ee4d9c6603d09fe58e25b36d8d40104b2e868be8e2f7fc446fd8ac83587f842ab06ab2f0b33afbd8bf47f7c29a1314d4b32af4b400026bec8650bfa7b0858c2ab155865318a80534f75b3384d8".replace("\n", "").decode("hex")
 
-
     binary = os.path.join(bin_location, "tests/cgc/PIZZA_00003")
 
-    crash = rex.Crash(binary, crash_input)
+    rop_cache = _load_cache("PIZZA_00003")
+    crash = rex.Crash(binary, crash_input, rop_cache_tuple=rop_cache)
     cp = crash.copy()
 
     ptfi = list(cp.point_to_flag())
@@ -334,7 +355,8 @@ def test_cromu71():
     format_infos.append(FormatInfoStrToInt(0x804C500, "based_atoi_signed_10", str_arg_num=0, base=10,
                                            base_arg=None, allows_negative=True))
 
-    crash = rex.Crash(binary, crash_input)
+    rop_cache = _load_cache("CROMU_00071")
+    crash = rex.Crash(binary, crash_input, rop_cache_tuple=rop_cache)
 
     # let's generate some exploits for it
     arsenal = crash.exploit()
