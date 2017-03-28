@@ -3,6 +3,6 @@ python: 2.7
 sudo: required
 dist: xenial
 env:
-  - PY=p ANGR_REPO=rex
+  - PY=p ANGR_REPO=rex NOSE_OPTIONS="--process-timeout=900 -x" NOSE_PROCESSES=1
 install: ( curl https://raw.githubusercontent.com/angr/angr-dev/$TRAVIS_BRANCH/tests/travis-install.sh | grep -v 404 || curl https://raw.githubusercontent.com/angr/angr-dev/master/tests/travis-install.sh ) | bash
 script: ~/angr-dev/tests/travis-test.sh
