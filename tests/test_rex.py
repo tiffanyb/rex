@@ -2,6 +2,7 @@ import rex
 import nose
 import struct
 import pickle
+import platform
 import colorguard
 from rex.vulnerability import Vulnerability
 from rex.trace_additions import FormatInfoIntToStr, FormatInfoStrToInt, FormatInfoDontConstrain
@@ -11,9 +12,13 @@ bin_location = str(os.path.join(os.path.dirname(os.path.realpath(__file__)), '..
 tests_dir = str(os.path.dirname(os.path.realpath(__file__)))
 
 import logging
-logging.basicConfig()
+logging.basicConfig(format='%(asctime)s %(message)s')
 logging.getLogger("rex").setLevel("DEBUG")
 logging.getLogger("povsim").setLevel("INFO")
+import tracer
+tracer.tracer.l.setLevel("DEBUG")
+
+tracer.tracer.l.warning("RUNNING UNDER %s", platform.python_implementation())
 
 
 def _do_pov_test(pov, enable_randomness=True):
@@ -30,7 +35,7 @@ def _load_cache(bin_name):
     return cache_tuple
 
 
-def test_legit_00001():
+def slow_legit_00001():
     '''
     Test exploitation of legit_00001 given a good crash.
     '''
@@ -52,7 +57,7 @@ def test_legit_00001():
     for leaker in arsenal.leakers:
         nose.tools.assert_true(_do_pov_test(leaker))
 
-def test_legit_00003():
+def slow_legit_00003():
     '''
     Test exploration and exploitation fo legit_00003.
     '''
@@ -78,7 +83,7 @@ def test_legit_00003():
     for leaker in arsenal.leakers:
         nose.tools.assert_true(_do_pov_test(leaker))
 
-def test_controlled_printf():
+def oom_controlled_printf():
     '''
     Test ability to turn controlled format string into Type 2 POV.
     '''
@@ -287,7 +292,7 @@ def test_arbitrary_transmit():
     print "test_arbitrary_transmit"
     _do_arbitrary_transmit_test_for("tests/i386/arbitrary_transmit")
 
-def test_KPRCA_00057():
+def oom_KPRCA_00057():
     """
     This test requires pointing an arbitrary transmit using atoi at the flag
     """
@@ -353,11 +358,14 @@ def test_reconstraining():
     nose.tools.assert_true(_do_pov_test(x))
 
     # test point to flag
+    # commented out because it's taking too long...
+    """
     nose.tools.assert_true(len(ptfi) >= 2)
     cg = colorguard.ColorGuard(binary, ptfi[1])
     x = cg.attempt_exploit()
     nose.tools.assert_not_equals(x, None)
     nose.tools.assert_true(_do_pov_test(x))
+    """
 
 
 def test_cromu71():
