@@ -93,7 +93,7 @@ class Crash(object):
             remove_options = {so.TRACK_REGISTER_ACTIONS, so.TRACK_TMP_ACTIONS, so.TRACK_JMP_ACTIONS,
                               so.ACTION_DEPS, so.TRACK_CONSTRAINT_ACTIONS, so.LAZY_SOLVES}
             add_options = {so.MEMORY_SYMBOLIC_BYTES_MAP, so.TRACK_ACTION_HISTORY, so.CONCRETIZE_SYMBOLIC_WRITE_SIZES,
-                           so.CONCRETIZE_SYMBOLIC_FILE_READ_SIZES}
+                           so.CONCRETIZE_SYMBOLIC_FILE_READ_SIZES, so.STRICT_PAGE_ACCESS}
 
             # faster place to check for non-crashing inputs
 
